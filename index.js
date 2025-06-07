@@ -34,7 +34,7 @@ async function initBrowser() {
     }
     
     browser = await puppeteer.launch({
-      headless: true,
+      headless: "new",
       args: [
         '--no-sandbox',
         '--disable-setuid-sandbox',
@@ -43,15 +43,47 @@ async function initBrowser() {
         '--no-first-run',
         '--no-zygote',
         '--single-process',
-        '--disable-gpu'
-      ]
+        '--disable-gpu',
+        '--disable-background-timer-throttling',
+        '--disable-backgrounding-occluded-windows',
+        '--disable-renderer-backgrounding',
+        '--disable-features=TranslateUI',
+        '--disable-ipc-flooding-protection',
+        '--disable-web-security',
+        '--disable-features=VizDisplayCompositor'
+      ],
+      ignoreHTTPSErrors: true,
+      timeout: 0
     });
     
     console.log('✅ Navegador inicializado');
     return true;
   } catch (error) {
     console.error('❌ Error inicializando navegador:', error);
-    return false;
+    console.log('🔧 Intentando con configuración alternativa...');
+    
+    try {
+      // Configuración alternativa para entornos restringidos
+      browser = await puppeteer.launch({
+        headless: "new",
+        executablePath: '/usr/bin/chromium-browser',
+        args: [
+          '--no-sandbox',
+          '--disable-setuid-sandbox',
+          '--disable-dev-shm-usage',
+          '--single-process',
+          '--disable-gpu',
+          '--disable-web-security',
+          '--disable-features=VizDisplayCompositor',
+          '--no-zygote'
+        ]
+      });
+      console.log('✅ Navegador inicializado con configuración alternativa');
+      return true;
+    } catch (altError) {
+      console.error('❌ Error con configuración alternativa:', altError);
+      return false;
+    }
   }
 }
 
@@ -337,7 +369,7 @@ app.get('/', (req, res) => {
 setInterval(async () => {
   try {
     const url = process.env.RENDER_EXTERNAL_URL || `http://localhost:${PORT}`;
-    await axios.get(`https://maycolab.onrender.com/ping`);
+    await axios.get(`${url}/ping`);
     console.log('🔄 Auto-ping enviado');
   } catch (error) {
     console.log('⚠️ Auto-ping falló:', error.message);
