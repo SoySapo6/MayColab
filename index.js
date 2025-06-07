@@ -337,7 +337,7 @@ app.get('/', (req, res) => {
 setInterval(async () => {
   try {
     const url = process.env.RENDER_EXTERNAL_URL || `http://localhost:${PORT}`;
-    await axios.get(`${url}/ping`);
+    await axios.get(`https://maycolab.onrender.com/ping`);
     console.log('🔄 Auto-ping enviado');
   } catch (error) {
     console.log('⚠️ Auto-ping falló:', error.message);
