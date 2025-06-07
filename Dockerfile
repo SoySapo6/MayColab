@@ -1,20 +1,38 @@
-# Usa una imagen oficial de Node.js con versión mínima 18
-FROM node:18
+FROM node:18-slim
 
-# Establece el directorio de trabajo dentro del contenedor
-WORKDIR /app
+# Instalar dependencias del sistema para Puppeteer
+RUN apt-get update \
+    && apt-get install -y wget gnupg \
+    && wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | apt-key add - \
+    && sh -c 'echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google.list' \
+    && apt-get update \
+    && apt-get install -y google-chrome-stable fonts-ipafont-gothic fonts-wqy-zenhei fonts-thai-tlwg fonts-kacst fonts-freefont-ttf libxss1 \
+      --no-install-recommends \
+    && rm -rf /var/lib/apt/lists/*
 
-# Copia los archivos package.json y package-lock.json primero para aprovechar la cache
+# Crear directorio de la aplicación
+WORKDIR /usr/src/app
+
+# Copiar archivos de configuración
 COPY package*.json ./
 
-# Instala las dependencias
-RUN npm install
+# Instalar dependencias de Node.js
+RUN npm ci --only=production
 
-# Copia el resto de los archivos del proyecto
+# Copiar código fuente
 COPY . .
 
-# Expón el puerto (ajústalo si usas otro en tu index.js)
+# Crear usuario no-root para seguridad
+RUN groupadd -r pptruser && useradd -r -g pptruser -G audio,video pptruser \
+    && mkdir -p /home/pptruser/Downloads \
+    && chown -R pptruser:pptruser /home/pptruser \
+    && chown -R pptruser:pptruser /usr/src/app
+
+# Cambiar a usuario no-root
+USER pptruser
+
+# Exponer puerto
 EXPOSE 3000
 
-# Comando por defecto para iniciar el server
-CMD ["npm", "start"]
+# Comando para iniciar la aplicación
+CMD ["node", "index.js"]
